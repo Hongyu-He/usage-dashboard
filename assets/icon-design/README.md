@@ -1,0 +1,9 @@
+# Usage dashboard icon
+
+Generated on 2026-09-17 with the built-in imagegen tool. No external model API script or runtime dependency was added.
+
+`source.png` preserves the generated 1254 × 1254 RGBA image. Exported copies in `dist/` preserve the design and transparency: 1024 px PNG, 180 px Apple touch icon, multi-size ICO, and macOS ICNS. Pillow was used only to resize and package these exports; the application still uses Python's standard library.
+
+## Generation prompt
+
+Use case: logo-brand. Create one finished application icon for a personal software usage dashboard called Usage / 用量看板 (do not write any text). This dashboard compares two coding assistants using blue and warm orange charts. Output a single square 1024 by 1024 PNG app-icon asset, not a presentation board, not multiple options, no labels or mockup. Design: a premium minimal macOS-style rounded-square tile with deep midnight-navy surface (#14253e), softly rounded corners, tiny refined bevel and restrained matte material. In its center, build a bold sculptural analytics symbol from three broad vertical rounded columns sharing a baseline: a short ice-blue left column, a medium vivid cornflower-blue middle column, a tall warm apricot-orange right column. Heights approximately 26%, 40%, 57% of the tile; widths each about 13% of the tile; small even gaps. Group is precisely centered, substantial and clearly recognizable at favicon size. Rounded capsule tops, gently rounded bottoms, slight soft lighting from top-left, subtle depth but almost flat, crisp large shapes. No chart axes, no tiny details, no sparkles, no letters, no numerals, no currency symbol, no text, no logos, no drop-shadow outside tile. The rounded navy tile fills nearly the whole square with only a slim transparent margin; real transparency outside the corners. Sophisticated, calm, legible; avoid glossy glass, neon glow, busy gradients, pseudo-3D perspective. Straight front view.

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Usage — Codex & Claude Code</title>
+  <link rel="icon" href="/favicon.ico?v=1" sizes="16x16 32x32 48x48 64x64 128x128 256x256">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=1" sizes="180x180">
+  <meta name="application-name" content="用量看板">
+  <meta name="apple-mobile-web-app-title" content="用量看板">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <main>
+    <header>
+      <div><div class="eyebrow">PERSONAL USAGE</div><h1>用量看板<span>Codex & Claude Code</span></h1></div>
+      <div class="header-actions"><button id="refresh">刷新数据</button><button id="theme" aria-label="切换深浅主题">深色模式</button></div>
+    </header>
+    <div class="status-line"><span id="status" role="status">正在读取本机统计…</span><span id="next-refresh">每 15 分钟自动采集</span></div>
+    <div id="alerts" aria-live="polite"></div>
+    <section class="filters" aria-label="统计范围">
+      <div class="presets" id="presets"><button data-preset="last24">近24小时</button><button data-preset="week">近 7 天</button><button data-preset="last30" aria-pressed="true">近 30 天</button><button data-preset="month">本月</button><button data-preset="all">全部</button></div>
+      <div class="date-controls"><label>开始 <input type="date" id="since"></label><span>—</span><label>结束 <input type="date" id="until"></label><button id="apply">应用</button></div>
+    </section>
+    <p id="range-error" class="error" role="alert" hidden></p>
+    <section class="totals" aria-label="区间汇总">
+      <article class="total combined"><h2>合计等效费用</h2><strong id="combined-cost">—</strong><span id="combined-tokens">— tokens</span><div id="cost-share" class="cost-share"></div></article>
+      <article class="total codex"><h2><i></i>Codex</h2><strong id="codex-cost">—</strong><span id="codex-tokens">— tokens</span><div id="codex-sparkline" class="sparkline"></div><div class="spark-caption"><span id="codex-caption">每日等效费用</span><span id="codex-share">—</span></div></article>
+      <article class="total claude"><h2><i></i>Claude Code</h2><strong id="claude-cost">—</strong><span id="claude-tokens">— tokens</span><div id="claude-sparkline" class="sparkline"></div><div class="spark-caption"><span id="claude-caption">每日等效费用</span><span id="claude-share">—</span></div></article>
+    </section>
+    <section class="panel">
+      <div class="panel-heading"><div><h2>用量趋势</h2><p id="range-label">—</p></div><div class="chart-controls"><label>指标 <select id="metric"><option value="cost">等效费用 · USD</option><option value="tokens">Tokens · 含缓存</option></select></label><label>视图 <select id="view"><option id="period-view" value="daily">每日</option><option value="cumulative">累计</option></select></label></div></div>
+      <div class="legend"><span><i class="codex-fill"></i>Codex</span><span><i class="claude-fill"></i>Claude Code</span></div>
+      <div id="trend-chart" class="chart" aria-label="两种工具的用量趋势"></div>
+      <p id="chart-detail" class="chart-detail" aria-live="polite">选择日期可查看当天两种工具的用量</p>
+    </section>
+    <div class="secondary-grid">
+      <section class="panel"><div class="panel-heading"><div><h2>模型构成</h2><p>按 Token 数统计 · 含缓存</p></div></div><div id="models" class="model-list"></div></section>
+      <section class="panel"><div class="panel-heading"><div><h2>Token 构成</h2><p>推理 Token 已包含在输出中</p></div></div><div id="token-mix"></div></section>
+    </div>
+    <section class="panel daily-panel"><div class="panel-heading"><div><h2 id="table-title">每日明细</h2><p id="table-note">北京时间 · 今天尚未结束</p></div><button id="export">导出 CSV</button></div><div class="table-scroll"><table><thead><tr><th id="period-heading">日期</th><th>Codex · USD</th><th>Claude · USD</th><th>合计 · USD</th><th>Tokens</th></tr></thead><tbody id="daily-rows"></tbody></table></div></section>
+    <footer><span>API 等效费用估算，不是订阅账单或剩余额度。仅包含这台开发机可读取的日志。</span><span id="provenance">ccusage · Asia/Shanghai</span></footer>
+  </main>
+</body>
+</html>

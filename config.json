@@ -1,0 +1,10 @@
+{
+  "port": 18763,
+  "since": "2026-01-01",
+  "timezone": "Asia/Shanghai",
+  "refresh_seconds": 900,
+  "timeout_seconds": 120,
+  "collector_workers": 2,
+  "ccusage_binary": ".tools/node_modules/@ccusage/ccusage-linux-x64/bin/ccusage",
+  "expected_ccusage_version": "20.0.20"
+}
