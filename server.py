@@ -115,7 +115,7 @@ def handler_for(state):
             if path == "/api/usage":
                 with state.guard:
                     data = state.data
-                return self.send(200 if data else 503, data or {"error": "首次采集进行中"})
+                return self.send(200 if data else 503, data or {"error": "First collection in progress"})
             files = {"/": ("index.html", "text/html; charset=utf-8"),
                      "/app.js": ("app.js", "text/javascript; charset=utf-8"),
                      "/style.css": ("style.css", "text/css; charset=utf-8"),

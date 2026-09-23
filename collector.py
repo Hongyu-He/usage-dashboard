@@ -217,13 +217,13 @@ def collect(cfg, data_dir=None, cancel_event=None):
     changes = revisions(old.get("rows", []), rows, today)
     notes = []
     if changes:
-        notes.append({"kind": "revision", "message": f"本次有 {len(changes)} 条历史日统计发生变化；已保存原始报告供核查。", "changes": changes})
+        notes.append({"kind": "revision", "message": f"This collection revised {len(changes)} past day{'' if len(changes) == 1 else 's'}; the raw reports are archived for review.", "changes": changes})
     snapshot = {
         "schemaVersion": 2, "collectedAt": utcnow(), "startedAt": start,
         "since": cfg["since"], "until": today, "timezone": cfg["timezone"],
         "ccusageVersion": version, "pricing": "online API-equivalent estimate",
         "binarySHA256": hashlib.sha256(binary.read_bytes()).hexdigest(),
-        "source": "这台开发机的 Codex / Claude Code 本地日志", "rows": rows,
+        "source": "Local Codex / Claude Code logs on this machine", "rows": rows,
         "intraday": intraday,
         "warnings": notes, "timings": timings,
     }

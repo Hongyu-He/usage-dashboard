@@ -14,8 +14,8 @@ function shiftDay(day, offset) {
   return date.toISOString().slice(0, 10);
 }
 function dateRange(since, until) {
-  if (!validDate(since) || !validDate(until) || since > until) throw new Error("请选择有效的起止日期，开始不能晚于结束。");
-  if ((Date.parse(until) - Date.parse(since)) / 86400000 > 3660) throw new Error("一次最多查看 10 年。");
+  if (!validDate(since) || !validDate(until) || since > until) throw new Error("Choose valid dates; the start cannot be after the end.");
+  if ((Date.parse(until) - Date.parse(since)) / 86400000 > 3660) throw new Error("A range can span at most 10 years.");
   const dates = [];
   for (let day = since; day <= until; day = shiftDay(day, 1)) dates.push(day);
   return dates;
@@ -25,9 +25,9 @@ function summarize(rows, since, until) {
   return summarizePeriods(rows, days);
 }
 function summarizeIntraday(data) {
-  if (!data) throw new Error("15分钟数据尚未就绪，请刷新数据后重试。");
+  if (!data) throw new Error("15-minute data is not ready yet; refresh and try again.");
   const start = Date.parse(data.start), end = Date.parse(data.end), step = data.bucketSeconds * 1000;
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end - start !== 86400000 || step !== 900000 || !Array.isArray(data.rows)) throw new Error("15分钟数据不完整，请刷新数据后重试。");
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end - start !== 86400000 || step !== 900000 || !Array.isArray(data.rows)) throw new Error("15-minute data is incomplete; refresh and try again.");
   const periods = [];
   for (let stamp = Math.floor(start / step) * step; stamp < end; stamp += step) {
     periods.push({ date: new Date(Math.max(start, stamp)).toISOString(), end: new Date(Math.min(end, stamp + step)).toISOString(), codex: { cost: 0, tokens: 0 }, claude: { cost: 0, tokens: 0 } });
@@ -107,8 +107,8 @@ if (typeof document !== "undefined") {
     return el;
   };
   let payload = null, status = null, summary = null, preset = "last30", pollRunning = false, offline = false;
-  function localTime(stamp) {
-    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone: payload.timezone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(stamp)).map(part => [part.type, part.value]));
+  function localTime(stamp, timeZone = payload.timezone) {
+    const parts = Object.fromEntries(new Intl.DateTimeFormat("en-US", { timeZone, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date(stamp)).map(part => [part.type, part.value]));
     return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
   }
   function periodLabel(period) {
@@ -141,9 +141,9 @@ if (typeof document !== "undefined") {
     render();
   }
   function selectRange(since, until) {
-    if (!payload) throw new Error("数据尚未就绪。");
+    if (!payload) throw new Error("Data is not ready yet.");
     dateRange(since, until);
-    if (since < payload.since || until > payload.until) throw new Error(`可用数据范围：${payload.since} 至 ${payload.until}。请先刷新以获得更新日期。`);
+    if (since < payload.since || until > payload.until) throw new Error(`Data is available from ${payload.since} to ${payload.until}. Refresh to get later dates.`);
     $("since").value = since; $("until").value = until; preset = "custom"; render();
     return { since, until, totals: summary.totals };
   }
@@ -159,12 +159,12 @@ if (typeof document !== "undefined") {
     const totalTokens = summary.totals.codex.tokens + summary.totals.claude.tokens;
     $("combined-cost").textContent = money(summary.totals.codex.cost + summary.totals.claude.cost);
     $("combined-tokens").textContent = integer(totalTokens) + " tokens";
-    $("range-label").textContent = summary.intraday ? `${localTime(summary.start)} — ${localTime(summary.end)} · 近24小时 · 每15分钟 · ${payload.timezone}` : `${$("since").value} — ${$("until").value} · ${summary.days.length} 天`;
-    $("table-note").textContent = summary.intraday ? `${payload.timezone} · 截至最近采集开始时刻 · 首尾时段按24小时窗口截取` : `${payload.timezone} · 最新一天统计截至采集时刻`;
-    $("period-view").textContent = summary.intraday ? "每15分钟" : "每日";
-    $("table-title").textContent = summary.intraday ? "15分钟明细" : "每日明细";
-    $("period-heading").textContent = summary.intraday ? "时段" : "日期";
-    for (const agent of AGENTS) $(agent + "-caption").textContent = summary.intraday ? "每15分钟等效费用" : "每日等效费用";
+    $("range-label").textContent = summary.intraday ? `${localTime(summary.start)} — ${localTime(summary.end)} · last 24 hours · 15-minute buckets · ${payload.timezone}` : `${$("since").value} — ${$("until").value} · ${summary.days.length} ${summary.days.length === 1 ? "day" : "days"}`;
+    $("table-note").textContent = summary.intraday ? `${payload.timezone} · ends when the latest collection started · first and last slots are trimmed to the window` : `${payload.timezone} · the latest day runs up to the collection time`;
+    $("period-view").textContent = summary.intraday ? "Per 15 minutes" : "Daily";
+    $("table-title").textContent = summary.intraday ? "15-minute breakdown" : "Daily breakdown";
+    $("period-heading").textContent = summary.intraday ? "Time slot" : "Date";
+    for (const agent of AGENTS) $(agent + "-caption").textContent = summary.intraday ? "Cost per 15 minutes" : "Daily cost";
     $("provenance").textContent = `${payload.ccusageVersion} · ${payload.timezone}`;
     $("models").replaceChildren();
     for (const model of summary.models) {
@@ -174,9 +174,9 @@ if (typeof document !== "undefined") {
       bar.append(svgEl("rect", { width: "100", height: "2", fill: "var(--bg)" }), svgEl("rect", { width: model.tokens / (summary.models[0]?.tokens || 1) * 100, height: "2", fill: `var(--${model.agent})` }));
       row.append(label, bar); $("models").append(row);
     }
-    if (!summary.models.length) $("models").append(element("div", "该区间没有记录到用量", "empty"));
+    if (!summary.models.length) $("models").append(element("div", "No usage recorded in this range", "empty"));
     $("token-mix").replaceChildren();
-    const labels = ["输入（不含缓存）", "输出（含推理）", "缓存读取", "缓存写入"];
+    const labels = ["Input (excl. cache)", "Output (incl. reasoning)", "Cache reads", "Cache writes"];
     COMPONENTS.forEach((key, index) => {
       const row = element("div", undefined, "mix-row"), value = element("strong", integer(summary.mix[key]));
       value.append(element("small", `${(summary.mix[key] / (totalTokens || 1) * 100).toFixed(1)}%`));
@@ -204,15 +204,15 @@ if (typeof document !== "undefined") {
   function drawSummaryCharts() {
     const total = summary.totals.codex.cost + summary.totals.claude.cost;
     const shares = AGENTS.map(agent => total > 0 ? summary.totals[agent].cost / total * 100 : 0);
-    const ring = svgEl("svg", { viewBox: "0 0 108 108", role: "img", "aria-label": total > 0 ? `费用占比：Codex ${shares[0].toFixed(1)}%，Claude Code ${shares[1].toFixed(1)}%` : "区间没有记录到费用，占比不适用" });
+    const ring = svgEl("svg", { viewBox: "0 0 108 108", role: "img", "aria-label": total > 0 ? `Cost share: Codex ${shares[0].toFixed(1)}%, Claude Code ${shares[1].toFixed(1)}%` : "No cost recorded in this range, so there is no share" });
     ring.append(svgEl("circle", { cx: 54, cy: 54, r: 42, fill: "none", stroke: "currentColor", "stroke-opacity": ".14", "stroke-width": 11 }));
     let offset = 0;
     AGENTS.forEach((agent, i) => {
       if (shares[i] > 0) ring.append(svgEl("circle", { cx: 54, cy: 54, r: 42, fill: "none", stroke: `var(--${agent})`, "stroke-width": 11, pathLength: 100, "stroke-dasharray": `${shares[i]} ${100 - shares[i]}`, "stroke-dashoffset": -offset, transform: "rotate(-90 54 54)" }));
       offset += shares[i];
-      $(agent + "-share").textContent = total > 0 ? `占比 ${shares[i].toFixed(1)}%` : "占比 —";
+      $(agent + "-share").textContent = total > 0 ? `Share ${shares[i].toFixed(1)}%` : "Share —";
     });
-    ring.append(svgEl("text", { x: 54, y: 59, "text-anchor": "middle", class: "ring-label" }, total > 0 ? "费用占比" : "暂无费用"));
+    ring.append(svgEl("text", { x: 54, y: 59, "text-anchor": "middle", class: "ring-label" }, total > 0 ? "Cost share" : "No cost"));
     const legend = element("div", undefined, "share-legend");
     AGENTS.forEach((agent, i) => {
       const row = element("div", undefined, "share-row");
@@ -223,7 +223,7 @@ if (typeof document !== "undefined") {
     // The same scale on both cards makes their amplitudes comparable.
     const maximum = Math.max(1, ...summary.days.flatMap(day => AGENTS.map(agent => day[agent].cost))) * 1.08;
     for (const agent of AGENTS) {
-      const svg = svgEl("svg", { viewBox: "0 0 300 86", preserveAspectRatio: "none", role: "img", "aria-label": `${agent === "codex" ? "Codex" : "Claude Code"} 区间${summary.intraday ? "每15分钟" : "每日"}等效费用趋势；两张迷你图刻度相同，详细数值见下方明细` });
+      const svg = svgEl("svg", { viewBox: "0 0 300 86", preserveAspectRatio: "none", role: "img", "aria-label": `${agent === "codex" ? "Codex" : "Claude Code"} ${summary.intraday ? "per-15-minute" : "daily"} cost trend for this range; both sparklines share one scale, and exact values are in the table below` });
       const points = summary.days.map((day, i) => ({ x: summary.days.length === 1 ? 150 : 4 + i * 292 / (summary.days.length - 1), y: 78 - day[agent].cost / maximum * 70 }));
       svg.append(svgEl("line", { x1: 4, x2: 296, y1: 78, y2: 78, class: "spark-baseline" }));
       svg.append(areaSeries(svg, points, agent, `spark-${agent}`, 78));
@@ -240,7 +240,7 @@ if (typeof document !== "undefined") {
     const step = innerWidth / points.length;
     const maximum = Math.max(1, ...points.flatMap(point => AGENTS.map(agent => point[agent]))) * 1.08;
     const x = i => left + step * (i + 0.5), y = value => top + innerHeight * (1 - value / maximum);
-    const svg = svgEl("svg", { viewBox: `0 0 ${width} ${height}`, role: "img", tabindex: "0", "aria-label": `${cumulative ? "累计" : summary.intraday ? "每15分钟" : "每日"}${metric === "cost" ? "等效费用" : "Token"}趋势；左右方向键选择时段，详细数值也列于下方表格。` });
+    const svg = svgEl("svg", { viewBox: `0 0 ${width} ${height}`, role: "img", tabindex: "0", "aria-label": `${cumulative ? "Cumulative" : summary.intraday ? "Per-15-minute" : "Daily"} ${metric === "cost" ? "cost" : "token"} trend; use the left and right arrow keys to pick a period. Exact values are also in the table below.` });
     for (let i = 0; i <= 4; i++) {
       const value = maximum * i / 4, gy = y(value);
       svg.append(svgEl("line", { x1: left, x2: width - right, y1: gy, y2: gy, class: "grid" }));
@@ -262,7 +262,7 @@ if (typeof document !== "undefined") {
       marker.setAttribute("x1", x(selected)); marker.setAttribute("x2", x(selected));
       const point = points[selected], format = metric === "cost" ? money : integer;
       dots.forEach((dot, i) => { dot.setAttribute("cx", x(selected)); dot.setAttribute("cy", y(point[AGENTS[i]])); });
-      $("chart-detail").textContent = `${periodLabel(point)}${cumulative ? " · 区间累计" : ""}　Codex ${format(point.codex)}　Claude ${format(point.claude)}${metric === "tokens" ? " tokens" : ""}`;
+      $("chart-detail").textContent = `${periodLabel(point)}${cumulative ? " · cumulative" : ""} · Codex ${format(point.codex)} · Claude ${format(point.claude)}${metric === "tokens" ? " tokens" : ""}`;
     }
     svg.addEventListener("pointermove", event => { const rect = svg.getBoundingClientRect(); select(Math.floor(((event.clientX - rect.left) / rect.width * width - left) / step)); });
     svg.addEventListener("pointerdown", event => { const rect = svg.getBoundingClientRect(); select(Math.floor(((event.clientX - rect.left) / rect.width * width - left) / step)); });
@@ -271,17 +271,17 @@ if (typeof document !== "undefined") {
   }
   function renderStatus() {
     const stamp = status?.collectedAt || payload?.collectedAt;
-    const time = stamp ? new Date(stamp).toLocaleString("zh-CN", { timeZone: payload?.timezone || "Asia/Shanghai", hour12: false }) : "尚无成功采集";
-    $("status").textContent = offline ? `连接已断开 · 保留当前画面 · ${time}` : `${status?.refreshing ? "正在采集" : status?.error ? "采集失败，保留上次结果" : "最近更新"} · ${time}`;
+    const time = stamp ? localTime(stamp, status?.timezone || payload?.timezone) : "no data yet";
+    $("status").textContent = offline ? `Disconnected · showing the last view · ${time}` : `${status?.refreshing ? "Collecting" : status?.error ? "Collection failed, keeping the last result" : "Last updated"} · ${time}`;
     $("refresh").disabled = Boolean(status?.refreshing) && !offline;
-    $("refresh").textContent = status?.refreshing && !offline ? "采集中…" : "刷新数据";
+    $("refresh").textContent = status?.refreshing && !offline ? "Collecting…" : "Refresh";
     const interval = Math.round((status?.refreshSeconds || 900) / 60);
-    $("next-refresh").textContent = `每 ${interval} 分钟自动采集 · 关闭网页仍会继续`;
+    $("next-refresh").textContent = `Collects every ${interval === 1 ? "minute" : `${interval} minutes`} · keeps going after you close this page`;
     $("alerts").replaceChildren();
     const messages = (payload?.warnings || []).map(warning => warning.message);
-    if (status?.error) messages.unshift("最近一次采集失败：" + status.error);
-    if (offline) messages.unshift("无法连接开发机。请检查 SSH 隧道和开发机是否在线；恢复后页面会自动重连。");
-    if (stamp && Date.now() - Date.parse(stamp) > (status?.refreshSeconds || 900) * 2000) messages.unshift("当前展示的是旧快照，请注意最近更新时间。");
+    if (status?.error) messages.unshift("Last collection failed: " + status.error);
+    if (offline) messages.unshift("Can't reach the dashboard. Check that the SSH tunnel and the remote machine are up; the page reconnects automatically.");
+    if (stamp && Date.now() - Date.parse(stamp) > (status?.refreshSeconds || 900) * 2000) messages.unshift("This is an old snapshot; check the last-updated time.");
     messages.forEach(message => $("alerts").append(element("div", message, "alert")));
   }
   async function getJSON(path, options = {}) {
@@ -312,7 +312,7 @@ if (typeof document !== "undefined") {
       status = await getJSON("/api/status");
       await getJSON("/api/refresh", { method: "POST", headers: { "X-Refresh-Token": status.csrfToken } });
       status.refreshing = true; offline = false;
-    } catch (error) { showRangeError("刷新请求失败：" + error.message); }
+    } catch (error) { showRangeError("Refresh request failed: " + error.message); }
     renderStatus(); setTimeout(poll, 1500);
   });
   $("export").addEventListener("click", () => {
@@ -320,7 +320,7 @@ if (typeof document !== "undefined") {
     const url = URL.createObjectURL(new Blob(["\ufeff", csvFor(summary.days)], { type: "text/csv;charset=utf-8" }));
     const a = element("a"); a.href = url; a.download = `usage-${summary.intraday ? "last24-15min-" : ""}${$("since").value}-${$("until").value}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
-  function setTheme(theme) { document.documentElement.dataset.theme = theme; $("theme").textContent = theme === "dark" ? "浅色模式" : "深色模式"; }
+  function setTheme(theme) { document.documentElement.dataset.theme = theme; $("theme").textContent = theme === "dark" ? "Light mode" : "Dark mode"; }
   let savedTheme;
   try { savedTheme = localStorage.getItem("usage-theme"); } catch (_) { /* storage may be disabled */ }
   setTheme(savedTheme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
@@ -333,7 +333,7 @@ if (typeof document !== "undefined") {
     try {
       Promise.resolve(document.modelContext.registerTool({
         name: "set_usage_date_range",
-        title: "筛选用量日期",
+        title: "Filter usage dates",
         description: "Set the visible usage date range, then return the displayed Codex and Claude totals. Does not rescan logs or change saved data.",
         inputSchema: { type: "object", properties: { since: { type: "string", description: "Start date, YYYY-MM-DD" }, until: { type: "string", description: "End date, YYYY-MM-DD" } }, required: ["since", "until"], additionalProperties: false },
         annotations: { readOnlyHint: false, untrustedContentHint: false },
